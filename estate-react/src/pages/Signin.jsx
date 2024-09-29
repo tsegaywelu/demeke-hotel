@@ -1,10 +1,16 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-
+import { useDispatch, useSelector } from "react-redux";
+import {
+  signinfailure,
+  signinstart,
+  signinsucess,
+} from "../redux/user/UserSlice";
 export const Signin = () => {
-  const [loading, setloading] = useState(false);
-  const [error, seterror] = useState(null);
+  const { loading, error } = useSelector((state) => state.user); //i am bringing the loading and error from store to use on this page
   const [FormData, setformdata] = useState({});
+
+  const dispatch = useDispatch();
 
   const handleinput = (e) => {
     setformdata({
@@ -15,8 +21,9 @@ export const Signin = () => {
 
   const handlesubmit = async (e) => {
     e.preventDefault();
+
     try {
-      setloading(true);
+      dispatch(signinstart());
       const response = await fetch("http://localhost:3000/api/auth/signin", {
         method: "POST",
         headers: {
@@ -24,27 +31,21 @@ export const Signin = () => {
         },
         body: JSON.stringify(FormData),
       });
-      const data = response.json();
-      if (!response.ok) {
-        const message = `Error: ${response.status} ${response.statusText}`;
-        seterror(message); // Set error message from the response
-        setloading(false);
-        return;
-      }
-      console.log(data);
+      const data = await response.json();
 
-      setloading(false);
-      seterror(null);
+      if (data.success == false) {
+        dispatch(signinfailure(data.message));
+      }
+      dispatch(signinsucess(data));
     } catch (error) {
-      setloading(false);
-      seterror(error);
+      dispatch(signinfailure(error.message));
     }
   };
 
   return (
     <div className="flex justify-center">
       <form
-        action=""
+        onSubmit={handlesubmit}
         className="flex flex-col md:w-1/3 bg-slate-500 p-7 gap-8 justify-center align-middle mt-7"
       >
         <h1 className=" text-center">Sign in here!</h1>
@@ -65,7 +66,7 @@ export const Signin = () => {
         <button
           disabled={loading}
           className="bg-black text-white rounded-lg p-3 disabled:bg-red-900"
-          onClick={handlesubmit}
+          type="submit"
         >
           {loading ? "loading....." : "signin"}
         </button>
